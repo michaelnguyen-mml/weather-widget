@@ -60,6 +60,9 @@ const WindNumber = styled.p`
     margin: 0;
 `
 // convert meteorological to cardinal
+//  WHY IS THIS NEEDED? 
+//      Because the OpenWeather api data was requested in json format and not XML, we weren't able to get the wind direction in cardinal. 
+//      JSON format only provides it in meterological. 
 const convertWindDirection = (degree) => {
     const compass = [
         "N", "NNE", "NE", "ENE",
@@ -71,9 +74,29 @@ const convertWindDirection = (degree) => {
     const compassPos = ( pos % 16 )
     return compass[compassPos]
 }
-// covnert wind speed from meter/sec to km/h 
+// convert wind speed from meter/sec to km/h 
+//  WHY IS THIS NEEDED?
+//      Similar reason as above. OpenWeather does not offer km/h in JSON format so it's better to take the "standard" and convert it 
+//      (plus we can reuse instead of making multiple API calls for the same data)
 const convertWindSpeed = (speed) => {
     return Math.round( speed * 3.6 )
+}
+
+const fetchWeatherApi = async (lat, long) => {
+    const api_key = process.env.REACT_APP_API_KEY
+    const api_url = process.env.REACT_APP_API_URL + `?lat=${lat}&lon=${long}&appid=${api_key}`
+    return await fetch(api_url)
+        .then(response => response.json())
+        .then(res => res)
+}
+
+// Retrieve user coordinates to use in api weather fetch
+const getGeoCoords = () => {
+    return new Promise( (resolve, reject ) => {
+        navigator.geolocation.getCurrentPosition( position => {
+            resolve(position.coords)
+        }, reject)
+    })
 }
 
 const WeatherWidget = () => {
@@ -83,13 +106,13 @@ const WeatherWidget = () => {
     const [lat, setLat] = useState('-33.865143')
     const [long, setLong] = useState('151.209900')
     const [hasDefaultCoordChanged, setHasDefaultCoordChanged ] = useState(false)
-
     const [widgetTitle, setWidgetTitle] = useState(null)
     const [temperature, setTemperature] = useState(null)
     const [wind, setWind] = useState({
         visibility: true,
-
     })
+
+
     // ASSUME weather widget is being init first time, prepare a "default" weather
     useEffect(() => {
         // Check if weather has been provided already
@@ -102,7 +125,7 @@ const WeatherWidget = () => {
                         setHasDefaultCoordChanged(true)
                     })
                     .catch( (err) => {
-                        // If user has denied permission then default back to Sydney coordinates 
+                        // If user has denied permission to allow location access then default back to Sydney coordinates 
                         setLat('-33.865143')
                         setLong('151.209900')
                     })
@@ -120,12 +143,19 @@ const WeatherWidget = () => {
             })
         }
     }, [ hasDefaultCoordChanged ])
-    
 
-    if (status === 'idle') // do nothing
-    if (status === 'rejected') console.error(error)
-    if (status === 'pending') console.log(status)
-    if (status === 'resolved') // do nothing
+    if (status === 'idle') {
+        // do nothing for now
+    }
+    if (status === 'rejected') { 
+        console.error(error)
+    }
+    if (status === 'pending') {
+        console.log(status)
+    }
+    if (status === 'resolved') {
+        // do nothing for now
+    }
 
     return (
         <>
@@ -155,21 +185,4 @@ const WeatherWidget = () => {
     )
 }
 
-
-const fetchWeatherApi = async (lat, long) => {
-    const api_key = "bbd71db36ed671c9437f898f6a610882"
-    const api_url = `https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${long}&appid=${api_key}`
-    return await fetch(api_url)
-        .then(response => response.json())
-        .then(res => res)
-}
-
-// Add a default coord
-const getGeoCoords = () => {
-    return new Promise( (resolve, reject ) => {
-        navigator.geolocation.getCurrentPosition( position => {
-            resolve(position.coords)
-        }, reject)
-    })
-}
 export default WeatherWidget
