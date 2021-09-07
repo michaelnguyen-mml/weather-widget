@@ -4,6 +4,8 @@
 ## Getting started
 ### Setup
 - Pull this repo and install dependencies with `yarn install`
+- Rename `.env-example` to `.env`
+
 
 ### Development / Start server
 - `yarn start`
